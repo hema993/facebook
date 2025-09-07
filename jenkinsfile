@@ -1,14 +1,17 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Tag for the Docker image')
+    }
+
     environment {
-        IMAGE_NAME = "hema84683/facebook-ui"
-        IMAGE_TAG  = "latest"
+        IMAGE_NAME ='hema993/facebook-u
     }
 
     stages {
         stage('Checkout Code') {
-            steps  {
+            steps {
                 git 'https://github.com/hema993/facebook.git'
             }
         }
@@ -21,10 +24,10 @@ pipeline {
 
         stage('Login to DockerHub & Push Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'hema84683', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker push $IMAGE_NAME:$IMAGE_TAG
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push $IMAGE_NAME:$IMAGE_TAG
                     '''
                 }
             }
@@ -33,11 +36,22 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 sh '''
-                docker rm -f fb-clone || true
-                docker run -d -p 8080:80 --name fb-clone $IMAGE_NAME:$IMAGE_TAG
+                    docker rm -f fb-clone || true
+                    docker run -d -p 8080:80 --name fb-clone $IMAGE_NAME:$IMAGE_TAG
                 '''
             }
         }
     }
-}
 
+    post {
+        success {
+            echo '✅ Build and deployment successful!'
+        }
+        failure {
+            echo '❌ Build failed. Please check the logs.'
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
