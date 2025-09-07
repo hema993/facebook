@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "your-dockerhub-username/facebook-ui"
+        IMAGE_NAME = "hema84683/facebook-ui"
         IMAGE_TAG  = "latest"
     }
 
