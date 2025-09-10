@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME ='hema993/facebook-u
+        IMAGE_NAME ='hema993/facebook-u'
     }
 
     stages {
