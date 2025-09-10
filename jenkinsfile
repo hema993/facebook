@@ -1,57 +1,50 @@
+
+
 pipeline {
     agent any
 
-    parameters {
-        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Tag for the Docker image')
-    }
-
     environment {
-        IMAGE_NAME ='hema993/facebook-u'
+        IMAGE_NAME = 'hema993/facebook-ui'
+        IMAGE_TAG  = 'latest'
     }
 
     stages {
-        stage('Checkout Code') {
-            steps {
-                git 'https://github.com/hema993/facebook.git'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+                echo "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
 
         stage('Login to DockerHub & Push Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub credentials', usernameVariable: 'hema84683', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push $IMAGE_NAME:$IMAGE_TAG
-                    '''
+                script {
+                    docker.withRegistry('', 'dockerhub credentials') {
+                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push()
+                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push('latest')
+                    }
                 }
             }
         }
 
         stage('Deploy Container') {
             steps {
-                sh '''
-                    docker rm -f fb-clone || true
-                    docker run -d -p 8080:80 --name fb-clone $IMAGE_NAME:$IMAGE_TAG
-                '''
+                sh """
+                    docker stop facebook-container || true
+                    docker rm facebook-container || true
+                    docker run -d --name facebook-container -p 8080:80 ${IMAGE_NAME}:${IMAGE_TAG}
+                """
             }
         }
     }
 
     post {
-        success {
-            echo '✅ Build and deployment successful!'
-        }
-        failure {
-            echo '❌ Build failed. Please check the logs.'
-        }
         always {
             cleanWs()
+            echo "✅ Pipeline finished"
+        }
+        failure {
+            echo "❌ Build failed. Please check the logs."
         }
     }
 }
